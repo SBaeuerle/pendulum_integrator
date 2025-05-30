@@ -1,0 +1,28 @@
+import numpy as np
+
+# Parameter und Anfangsbedingungen
+g = 9.81
+L = 1
+t_min = 0
+t_max = 10
+h = 0.1
+
+theta_0 = np.deg2rad(45)
+omega_0 = 0
+
+# Zeitwerte und logging
+t_values = np.arange(0, t_max, h)
+z_values = []
+
+# Anfangswerte
+z_10 = theta_0
+z_20 = omega_0
+
+for t in t_values:    
+    z_11 = z_10 + h*z_20
+    z_21 = z_20 + h*(-np.sqrt(g/L)*np.sin(z_10))
+
+    z_10 = z_11
+    z_20 = z_21
+    z_values.append(z_10)
+
