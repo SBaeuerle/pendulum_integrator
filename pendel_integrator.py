@@ -1,5 +1,6 @@
 import numpy as np
-from visualize_pendulum import plot_simulation_data
+from visualize_pendulum import VisualizePendulum
+
 
 # Parameter und Anfangsbedingungen
 g = 9.81
@@ -27,4 +28,5 @@ for t in t_values:
     z_20 = z_21
     z_values.append(z_10)
 
-plot_simulation_data(t_values, np.rad2deg(z_values))
+viz_pendel = VisualizePendulum(t_values, z_values)
+viz_pendel.animate()
