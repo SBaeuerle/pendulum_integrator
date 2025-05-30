@@ -1,11 +1,12 @@
 import numpy as np
+from visualize_pendulum import plot_simulation_data
 
 # Parameter und Anfangsbedingungen
 g = 9.81
 L = 1
 t_min = 0
 t_max = 10
-h = 0.1
+h = 0.001
 
 theta_0 = np.deg2rad(45)
 omega_0 = 0
@@ -20,9 +21,10 @@ z_20 = omega_0
 
 for t in t_values:    
     z_11 = z_10 + h*z_20
-    z_21 = z_20 + h*(-np.sqrt(g/L)*np.sin(z_10))
+    z_21 = z_20 + h*(-g/L*np.sin(z_10))
 
     z_10 = z_11
     z_20 = z_21
     z_values.append(z_10)
 
+plot_simulation_data(t_values, np.rad2deg(z_values))
