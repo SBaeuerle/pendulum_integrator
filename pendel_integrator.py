@@ -1,33 +1,34 @@
 import numpy as np
 from visualize_pendulum import VisualizePendulum
 
-
 # Parameter und Anfangsbedingungen
 g = 9.81
 L = 1
+omega_0 = np.sqrt(g/L)
+D = 0.05
 t_min = 0
 t_max = 10
-h = 0.01
+h = 0.001
 
 theta_0 = np.deg2rad(45)
-omega_0 = 0
+dtheta_0 = 0
 
 # Zeitwerte und logging
 t_values = np.arange(0, t_max, h)
-z_values = []
+
+# Speicherplatz alloquieren
+u = np.zeros((2, len(t_values)))
 
 # Anfangswerte
-z_10 = theta_0
-z_20 = omega_0
+u[0, 0] = theta_0
+u[1, 0] = dtheta_0
 
-for t in t_values:    
-    z_11 = z_10 + h*z_20
-    z_21 = z_20 + h*(-g/L*np.sin(z_10))
+for n in range(0, len(t_values)-1):    
+    u[0, n+1] = u[0, n] + h*u[1, n]
+    u[1, n+1] = u[1, n] + h*(-2*D*omega_0*u[1, n] - omega_0**2*np.sin(u[0, n]))
 
-    z_10 = z_11
-    z_20 = z_21
-    z_values.append(z_10)
-
-viz_pendel = VisualizePendulum(t_values, z_values)
-# viz_pendel.plot()
+show_reference = True
+viz_pendel = VisualizePendulum(t_values, u, show_reference)
+viz_pendel.omega_0_ref = omega_0
+viz_pendel.D_ref = D
 viz_pendel.animate()

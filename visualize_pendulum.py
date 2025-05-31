@@ -8,7 +8,7 @@ from matplotlib.transforms import Affine2D
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from scipy.integrate import solve_ivp
-from pendulum_ode import undamped_ode
+from pendulum_ode import damped_ode
 
 matplotlib.use('TkAgg')
 
@@ -23,6 +23,8 @@ class VisualizePendulum():
     init_step_width: float
     step_width: float
     length_pend: float = 1.0
+    omega_0_ref: float = np.sqrt(9.81/length_pend)
+    D_ref: float = 0.05
     length_rect_long = 0.3
     length_rect_short = 0.2
     fig: Figure
@@ -37,8 +39,9 @@ class VisualizePendulum():
 
     blue: np.ndarray = np.array([47/255, 82/255, 143/255])
 
-    def __init__(self, values_time: np.ndarray, values_angle: np.ndarray, reference: bool = False) -> None:
+    def __init__(self, values_time: np.ndarray, values_state: np.ndarray, reference: bool = False) -> None:
         self.reference = reference
+        values_angle: np.ndarray = values_state[0, :]
         self._assign_values(values_time, values_angle)
 
         if self.reference:
@@ -73,12 +76,12 @@ class VisualizePendulum():
         t_eval = np.linspace(t_min, t_max, len(self.values_time))
 
         sol = solve_ivp(
-            undamped_ode,
+            damped_ode,
             (t_min, t_max),
             [theta_start, omega_start],
             method="RK45",
             t_eval=t_eval,
-            args=(9.81, self.length_pend)
+            args=(self.omega_0_ref, self.D_ref)
         )
         self.values_time_ref = sol.t
         self.values_angle_ref = sol.y[0]
