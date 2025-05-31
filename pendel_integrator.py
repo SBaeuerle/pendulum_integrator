@@ -44,16 +44,12 @@ for n in range(0, len(t_values2)-1):
     u2[0, n+1] = u2[0, n] + h*u2[1, n]
     u2[1, n+1] = u2[1, n] + h*(-2*D*omega_0*u2[1, n] - omega_0**2*np.sin(u2[0, n]))
 
-
-
-
-
-
 show_reference = True
+
 results = {
     'Euler_explicit_h01': (t_values, u),
     'Euler_explicit_h001': (t_values2, u2)
 }
 
 viz_pendel = VisualizePendulum(results, show_reference, omega_0, D)
-viz_pendel.animate()
+viz_pendel.plot()
