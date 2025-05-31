@@ -30,4 +30,3 @@ for n in range(0, len(t_values)-1):
 show_reference = True
 viz_pendel = VisualizePendulum(t_values, u, show_reference, omega_0, D)
 viz_pendel.animate()
-# viz_pendel.plot()
