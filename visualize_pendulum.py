@@ -16,6 +16,7 @@ matplotlib.use('TkAgg')
 class VisualizePendulum():
     values_time: np.ndarray
     values_angle: np.ndarray
+    values_dangle: np.ndarray
     reference: bool 
     values_time_ref: np.ndarray
     values_angle_ref: np.ndarray
@@ -41,37 +42,39 @@ class VisualizePendulum():
 
     def __init__(self, values_time: np.ndarray, values_state: np.ndarray, reference: bool = False) -> None:
         self.reference = reference
-        values_angle: np.ndarray = values_state[0, :]
-        self._assign_values(values_time, values_angle)
+        self._assign_values(values_time, values_state)
 
         if self.reference:
             self._compute_and_assign_reference_solution()
         
-    def _assign_values(self, values_time: np.ndarray, values_angle: np.ndarray) -> None:
+    def _assign_values(self, values_time: np.ndarray, values_state: np.ndarray) -> None:
         self._assign_init_step_width(values_time)
         if self.init_step_width >= self.ref_step_width:
             self.values_time = values_time
-            self.values_angle = values_angle
+            self.values_angle = values_state[0, :]
+            self.values_dangle = values_state[1, :]
             self.step_width = self.init_step_width
         else:
-            self._sample_data_down_and_assign(values_time, values_angle)
+            self._sample_data_down_and_assign(values_time, values_state)
     
     def _assign_init_step_width(self, values_time: np.ndarray) -> None:
         self.init_step_width = values_time[1] - values_time[0]
 
-    def _sample_data_down_and_assign(self, values_time: np.ndarray, values_angle: np.ndarray) -> None:             
+    def _sample_data_down_and_assign(self, values_time: np.ndarray, values_state: np.ndarray) -> None:             
         values_time_interpolated = np.arange(values_time[0], values_time[-1] + self.ref_step_width, self.ref_step_width)
-        values_angle_interpolated = np.interp(values_time_interpolated, values_time, values_angle)
-        
+        values_angle_interpolated = np.interp(values_time_interpolated, values_time, values_state[0,:])
+        values_dangle_interpolated = np.interp(values_time_interpolated, values_time, values_state[1,:])
+
         self.values_time = values_time_interpolated
         self.values_angle = values_angle_interpolated
+        self.values_dangle = values_dangle_interpolated
         self.step_width = self.ref_step_width    
 
     def _compute_and_assign_reference_solution(self) -> None:
         t_min: float = self.values_time[0]
         t_max: float = self.values_time[-1]
         theta_start: float = self.values_angle[0]
-        omega_start: float = 0.0 
+        omega_start: float = self.values_dangle[0]
 
         t_eval = np.linspace(t_min, t_max, len(self.values_time))
 
