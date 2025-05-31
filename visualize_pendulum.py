@@ -7,6 +7,8 @@ from matplotlib.patches import Rectangle
 from matplotlib.transforms import Affine2D 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from scipy.integrate import solve_ivp
+from pendulum_ode import undamped_ode
 
 matplotlib.use('TkAgg')
 
@@ -14,6 +16,9 @@ matplotlib.use('TkAgg')
 class VisualizePendulum():
     values_time: np.ndarray
     values_angle: np.ndarray
+    reference: bool 
+    values_time_ref: np.ndarray
+    values_angle_ref: np.ndarray
     ref_step_width: float = 0.01
     init_step_width: float
     step_width: float
@@ -32,11 +37,13 @@ class VisualizePendulum():
 
     blue: np.ndarray = np.array([47/255, 82/255, 143/255])
 
-    def __init__(self, values_time: np.ndarray, values_angle: np.ndarray) -> None:
-        
-        # Sample down data 
+    def __init__(self, values_time: np.ndarray, values_angle: np.ndarray, reference: bool = False) -> None:
+        self.reference = reference
         self._assign_values(values_time, values_angle)
 
+        if self.reference:
+            self._compute_and_assign_reference_solution()
+        
     def _assign_values(self, values_time: np.ndarray, values_angle: np.ndarray) -> None:
         self._assign_init_step_width(values_time)
         if self.init_step_width >= self.ref_step_width:
@@ -45,6 +52,9 @@ class VisualizePendulum():
             self.step_width = self.init_step_width
         else:
             self._sample_data_down_and_assign(values_time, values_angle)
+    
+    def _assign_init_step_width(self, values_time: np.ndarray) -> None:
+        self.init_step_width = values_time[1] - values_time[0]
 
     def _sample_data_down_and_assign(self, values_time: np.ndarray, values_angle: np.ndarray) -> None:             
         values_time_interpolated = np.arange(values_time[0], values_time[-1] + self.ref_step_width, self.ref_step_width)
@@ -54,13 +64,32 @@ class VisualizePendulum():
         self.values_angle = values_angle_interpolated
         self.step_width = self.ref_step_width    
 
-    def _assign_init_step_width(self, values_time: np.ndarray) -> None:
-        self.init_step_width = values_time[1] - values_time[0]
+    def _compute_and_assign_reference_solution(self) -> None:
+        t_min: float = self.values_time[0]
+        t_max: float = self.values_time[-1]
+        theta_start: float = self.values_angle[0]
+        omega_start: float = 0.0 
+
+        t_eval = np.linspace(t_min, t_max, len(self.values_time))
+
+        sol = solve_ivp(
+            undamped_ode,
+            (t_min, t_max),
+            [theta_start, omega_start],
+            method="RK45",
+            t_eval=t_eval,
+            args=(9.81, self.length_pend)
+        )
+        self.values_time_ref = sol.t
+        self.values_angle_ref = sol.y[0]
 
     def _create_animation_figure(self) -> None:
         self.fig, (self.ax_time, self.ax_pend) = plt.subplots(1, 2, figsize=(12, 6))
 
         # --- Left: Angle vs. Time plot ---
+        if self.reference:
+            self.ax_time.plot(self.values_time_ref, np.rad2deg(self.values_angle_ref), color='gray')  #Reference solution
+
         self.line_time, = self.ax_time.plot([], [], lw=1, color=self.blue)
         self.marker_time, = self.ax_time.plot(self.values_time[0], np.rad2deg(self.values_angle[0]), 'o', ms=8, color=self.blue)
         self.ax_time.set_title("Winkel über Zeit")
@@ -163,21 +192,21 @@ class VisualizePendulum():
         plt.show()
         return self.ani
 
-    # def plot_simulation_data(values_time, values_angle_deg, integrator_name="Euler explizit"):
-    #     """
-    #     Visualisiert die Ergebnisse der Pendelsimulation.
-    #     (Deine bekannte Plot-Funktion)
-    #     """
-    #     plt.figure(figsize=(10, 6))
-    #     plt.plot(values_time, values_angle_deg, label=f"{integrator_name}")
+    def plot(self):
+        """
+        Visualisiert die Ergebnisse der Pendelsimulation.
+        (Deine bekannte Plot-Funktion)
+        """
+        plt.figure(figsize=(10, 6))
+        plt.plot(self.values_time, np.rad2deg(self.values_angle))
 
-    #     plt.title("Pendelsimulation: Winkel über Zeit")
+        plt.title("Pendelsimulation: Winkel über Zeit")
 
-    #     plt.xlabel("Zeit/ s")
-    #     plt.ylabel("Winkel/ deg")
-    #     plt.grid(True)
-    #     plt.legend()
-    #     plt.show()
+        plt.xlabel("Zeit/ s")
+        plt.ylabel("Winkel/ deg")
+        plt.grid(True)
+        plt.legend()
+        plt.show()
 
 
 

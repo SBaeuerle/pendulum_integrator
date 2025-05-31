@@ -7,7 +7,7 @@ g = 9.81
 L = 1
 t_min = 0
 t_max = 10
-h = 0.001
+h = 0.01
 
 theta_0 = np.deg2rad(45)
 omega_0 = 0
@@ -29,4 +29,5 @@ for t in t_values:
     z_values.append(z_10)
 
 viz_pendel = VisualizePendulum(t_values, z_values)
+# viz_pendel.plot()
 viz_pendel.animate()
