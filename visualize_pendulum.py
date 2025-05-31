@@ -24,8 +24,8 @@ class VisualizePendulum():
     init_step_width: float
     step_width: float
     length_pend: float = 1.0
-    omega_0_ref: float = np.sqrt(9.81/length_pend)
-    D_ref: float = 0.05
+    omega_0_ref: float
+    D_ref: float
     length_rect_long = 0.3
     length_rect_short = 0.2
     fig: Figure
@@ -40,8 +40,10 @@ class VisualizePendulum():
 
     blue: np.ndarray = np.array([47/255, 82/255, 143/255])
 
-    def __init__(self, values_time: np.ndarray, values_state: np.ndarray, reference: bool = False) -> None:
+    def __init__(self, values_time: np.ndarray, values_state: np.ndarray, reference: bool = False, omega_0_ref: float = np.sqrt(9.81), D_ref: float = 0.05) -> None:
         self.reference = reference
+        self.omega_0_ref = omega_0_ref
+        self.D_ref = D_ref
         self._assign_values(values_time, values_state)
 
         if self.reference:
@@ -94,9 +96,9 @@ class VisualizePendulum():
 
         # --- Left: Angle vs. Time plot ---
         if self.reference:
-            self.ax_time.plot(self.values_time_ref, np.rad2deg(self.values_angle_ref), color='gray')  #Reference solution
+            self.ax_time.plot(self.values_time_ref, np.rad2deg(self.values_angle_ref), color='gray', label='reference')  #Reference solution
 
-        self.line_time, = self.ax_time.plot([], [], lw=1, color=self.blue)
+        self.line_time, = self.ax_time.plot([], [], lw=1, color=self.blue, label='integrator')
         self.marker_time, = self.ax_time.plot(self.values_time[0], np.rad2deg(self.values_angle[0]), 'o', ms=8, color=self.blue)
         self.ax_time.set_title("Winkel über Zeit")
         self.ax_time.set_xlabel("Zeit / s")
@@ -104,6 +106,7 @@ class VisualizePendulum():
         self.ax_time.set_xlim(np.min(self.values_time) * 0.8, np.max(self.values_time))
         self.ax_time.set_ylim(np.min(np.rad2deg(self.values_angle)) * 1.2, np.max(np.rad2deg(self.values_angle)) * 1.2)
         self.ax_time.grid(True)
+        self.ax_time.legend()
 
         # --- Right: Pendulum animation ---
         self.ax_pend.set_xlim(-self.length_pend * 1.2, self.length_pend * 1.2)
@@ -204,7 +207,10 @@ class VisualizePendulum():
         (Deine bekannte Plot-Funktion)
         """
         plt.figure(figsize=(10, 6))
-        plt.plot(self.values_time, np.rad2deg(self.values_angle))
+        plt.plot(self.values_time, np.rad2deg(self.values_angle), color=self.blue, label="integrator")
+        if self.reference:
+            plt.plot(self.values_time_ref, np.rad2deg(self.values_angle_ref), color='gray', label="reference")
+        
 
         plt.title("Pendelsimulation: Winkel über Zeit")
 
@@ -213,9 +219,3 @@ class VisualizePendulum():
         plt.grid(True)
         plt.legend()
         plt.show()
-
-
-
-
-
-
