@@ -52,4 +52,4 @@ results = {
 }
 
 viz_pendel = VisualizePendulum(results, show_reference, omega_0, D)
-viz_pendel.plot()
+viz_pendel.animate()

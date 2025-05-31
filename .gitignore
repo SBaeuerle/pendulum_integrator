@@ -1,0 +1,26 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE specific files
+.vscode/
+.idea/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Test/Coverage files
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Distribution / build files
+dist/
+build/
+*.egg-info/

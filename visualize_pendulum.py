@@ -11,9 +11,10 @@ from matplotlib.figure import Figure
 
 # Import the PendulumData class
 from pendulum_data import PendulumData
+# Import the new PendulumPlotInitializer
+from pendulum_plot_utils import PendulumPlotInitializer
 
-matplotlib.use('TkAgg')
-
+matplotlib.use('TkAgg') # Consider moving this to the main execution script (e.g., main.py)
 
 class VisualizePendulum():
     # --- Attributes for visualization components ---
@@ -27,33 +28,18 @@ class VisualizePendulum():
     pendulum_lines: List[plt.Line2D]
     pendulum_rects: List[Rectangle]
 
-    # New: Attributes for the reference pendulum animation
+    # Attributes for the reference pendulum animation
     reference_pendulum_data: Optional[PendulumData] = None
+    reference_time_line: Optional[plt.Line2D] = None # New attribute for ref line on time plot
     reference_pendulum_line: Optional[plt.Line2D] = None
     reference_pendulum_rect: Optional[Rectangle] = None
 
-    text_pend: matplotlib.text.Text # Assuming one global time text
+    text_pend: matplotlib.text.Text
     ani: Optional[FuncAnimation]
 
-    # --- Data and styling ---
-    # This will now store a dictionary of PendulumData objects, keyed by their name
+    # --- Data and plotting utility ---
     pendulum_data_runs: Dict[str, PendulumData] 
-    
-    # Constants for pendulum size
-    length_pend: float = 1.0
-    length_rect_long = 0.3
-    length_rect_short = 0.2
-    
-    # Color palette for different simulation runs
-    # Using distinct colors for clarity
-    colors: List[np.ndarray] = [
-        np.array([47/255, 82/255, 143/255]),  # A shade of blue
-        np.array([200/255, 50/255, 50/255]), # A shade of red
-        np.array([50/255, 150/255, 50/255]), # A shade of green
-        np.array([255/255, 165/255, 0/255]) # Orange
-    ]
-    reference_color: str = 'gray'
-    alpha_value: float = 0.7
+    plot_initializer: PendulumPlotInitializer # New instance of the utility class
 
     # --- Constructor ---
     def __init__(self, simulation_results: Dict[str, Tuple[np.ndarray, np.ndarray]],
@@ -72,41 +58,38 @@ class VisualizePendulum():
             D_ref (float): Damping coefficient for the reference solution.
         """
         self.pendulum_data_runs = {}
-        
+        self.plot_initializer = PendulumPlotInitializer() # Initialize the plotting utility
+
         # Get the first key to decide which run gets the reference (if 'reference' is True)
         run_names = list(simulation_results.keys())
         first_run_name = run_names[0] if run_names else None
 
         for name, (t_vals, u_vals) in simulation_results.items():
-            # Only apply 'reference' flag to the first simulation passed in the dict
             run_reference_flag = reference if name == first_run_name else False
             
             current_pendulum_data = PendulumData(
                 values_time=t_vals,
                 values_state=u_vals,
-                reference=run_reference_flag, # Pass the flag to PendulumData
+                reference=run_reference_flag,
                 omega_0_ref=omega_0_ref,
                 D_ref=D_ref
             )
             self.pendulum_data_runs[name] = current_pendulum_data
 
-            # If this specific PendulumData instance generated a reference, store it
             if current_pendulum_data.reference:
                 self.reference_pendulum_data = current_pendulum_data
 
-        # Determine the animation interval based on the smallest step_width among runs,
-        # or the reference if it exists and has a smaller step_width.
         all_step_widths = [data.step_width for data in self.pendulum_data_runs.values()]
         if self.reference_pendulum_data:
-            all_step_widths.append(self.reference_pendulum_data.ref_step_width) # Use ref_step_width for the reference
+            all_step_widths.append(self.reference_pendulum_data.ref_step_width)
         self.animation_step_width = min(all_step_widths) if all_step_widths else 0.01 
 
 
     # --- Animation Setup ---
     def _create_animation_figure(self) -> None:
-        self.fig, (self.ax_time, self.ax_pend) = plt.subplots(1, 2, figsize=(12, 6))
+        # Delegate figure and axes creation to the initializer
+        self.fig, self.ax_time, self.ax_pend = self.plot_initializer.create_figure_and_axes()
 
-        # Initialize lists for matplotlib artists
         self.time_lines = []
         self.time_markers = []
         self.pendulum_lines = []
@@ -119,17 +102,17 @@ class VisualizePendulum():
 
         # --- Left: Angle vs. Time plot ---
         for i, (name, data) in enumerate(self.pendulum_data_runs.items()):
-            color = self.colors[i % len(self.colors)] # Cycle through colors
+            color = self.plot_initializer.colors[i % len(self.plot_initializer.colors)]
             
             # Plot reference solution if enabled for this run
             if data.reference and data.values_time_ref is not None:
-                self.ax_time.plot(data.values_time_ref, np.rad2deg(data.values_angle_ref), 
-                                  color=self.reference_color, linestyle='--', label=f'Reference (RK45)')
-
+                # Use initializer for reference time line
+                self.reference_time_line = self.plot_initializer.create_reference_time_line(self.ax_time)
+                # Set data immediately for static plotting - this line is NOT animated
+                self.reference_time_line.set_data(data.values_time_ref, np.rad2deg(data.values_angle_ref))
+                
             # Initialize line and marker for current simulation run
-            line, = self.ax_time.plot([], [], lw=1, color=color, label=f'Integrator ({name})')
-            marker, = self.ax_time.plot(data.values_time[0], np.rad2deg(data.values_angle[0]), 'o', ms=8, color=color)
-            
+            line, marker = self.plot_initializer.create_time_plot_artists(self.ax_time, name, color)
             self.time_lines.append(line)
             self.time_markers.append(marker)
             
@@ -139,81 +122,31 @@ class VisualizePendulum():
             min_time = min(min_time, np.min(data.values_time))
             max_time = max(max_time, np.max(data.values_time))
 
+        # Delegate axis setup to the initializer
+        self.plot_initializer.setup_time_axis(self.ax_time, min_time, max_time, min_angle_deg, max_angle_deg)
 
-        self.ax_time.set_title("Angle over Time")
-        self.ax_time.set_xlabel("Time / s")
-        self.ax_time.set_ylabel("Angle / deg")
-        self.ax_time.set_xlim(min_time * 0.8, max_time * 1.05)
-        self.ax_time.set_ylim(min_angle_deg * 1.2, max_angle_deg * 1.2)
-        self.ax_time.grid(True)
-        self.ax_time.legend()
 
         # --- Right: Pendulum animation ---
-        self.ax_pend.set_xlim(-self.length_pend * 1.2, self.length_pend * 1.2)
-        self.ax_pend.set_ylim(-self.length_pend * 1.2, self.length_pend * 1.2)
-        self.ax_pend.set_aspect('equal')
-        self.ax_pend.set_xlabel('')
-        self.ax_pend.set_ylabel('')
-        self.ax_pend.grid(True, which="both")
-
-        self.ax_pend.tick_params(
-            axis="both",
-            which="both",
-            length=0,
-            labelbottom=False,
-            labelleft=False
-        )
+        # Delegate axis setup to the initializer
+        self.plot_initializer.setup_pendulum_axis(self.ax_pend)
         
         # Initialize artists for EACH simulation run
         for i, (name, data) in enumerate(self.pendulum_data_runs.items()):
-            color = self.colors[i % len(self.colors)]
-            line, = self.ax_pend.plot([], [], lw=2, color=color, linestyle='-', zorder=2) # Use color for pend line
+            color = self.plot_initializer.colors[i % len(self.plot_initializer.colors)]
+            line, rect = self.plot_initializer.create_pendulum_artists(self.ax_pend, color)
             self.pendulum_lines.append(line)
-
-            rect = Rectangle(
-                (-self.length_rect_long/2, -self.length_rect_short/2),
-                self.length_rect_long,
-                self.length_rect_short,
-                facecolor=color,
-                edgecolor='black',
-                linewidth=2,
-                transform=self.ax_pend.transData,
-                alpha=self.alpha_value,
-            )
-            self.ax_pend.add_patch(rect)
             self.pendulum_rects.append(rect)
             
-        # NEW: Initialize artists for the REFERENCE pendulum if it exists
+        # Initialize artists for the REFERENCE pendulum if it exists
         if self.reference_pendulum_data and self.reference_pendulum_data.values_angle_ref is not None:
-            ref_line, = self.ax_pend.plot([], [], lw=2, color=self.reference_color, linestyle='--')
-            self.reference_pendulum_line = ref_line
-            
-            ref_rect = Rectangle(
-                (-self.length_rect_long/2, -self.length_rect_short/2),
-                self.length_rect_long,
-                self.length_rect_short,
-                facecolor=self.reference_color,
-                edgecolor='black',
-                linewidth=2,
-                transform=self.ax_pend.transData,
-                zorder=0,
-                alpha=self.alpha_value,
-            )
-            self.ax_pend.add_patch(ref_rect)
-            self.reference_pendulum_rect = ref_rect
+            self.reference_pendulum_line, self.reference_pendulum_rect = \
+                self.plot_initializer.create_reference_pendulum_artists(self.ax_pend)
 
-        self.ax_pend.scatter(0, 0, s=200, c='black', marker='o', zorder=10) # Fixed pivot point
+        # Create pivot point (static)
+        self.plot_initializer.create_pivot_point_artist(self.ax_pend)
         
-        # Time text (can be global or per pendulum) - keeping it global for simplicity
-        self.text_pend = self.ax_pend.text(
-            0.5, 0.95,
-            "",
-            transform=self.ax_pend.transAxes,
-            ha="center",
-            va="top",
-            fontsize=12
-        )
-        self.ax_pend.set_title("Pendulum-Animation")
+        # Create time text artist
+        self.text_pend = self.plot_initializer.create_time_text_artist(self.ax_pend)
 
 
     def _init_animation(self) -> Tuple:
@@ -228,10 +161,13 @@ class VisualizePendulum():
             line.set_data([], [])
             all_artists.append(line)
         for rect in self.pendulum_rects:
-            rect.set_transform(self.ax_pend.transData) # Reset transform
+            rect.set_transform(self.ax_pend.transData)
             all_artists.append(rect)
             
-        # NEW: Reset reference pendulum artists
+        # REMOVED: self.reference_time_line.set_data([], []) and appending it to all_artists
+        # The reference_time_line is static and should not be cleared by _init_animation
+        # or returned by _update_animation when blit=True.
+
         if self.reference_pendulum_line:
             self.reference_pendulum_line.set_data([], [])
             all_artists.append(self.reference_pendulum_line)
@@ -240,7 +176,7 @@ class VisualizePendulum():
             all_artists.append(self.reference_pendulum_rect)
 
         self.text_pend.set_text("")
-        all_artists.append(self.text_pend) # Add text to artists to be returned
+        all_artists.append(self.text_pend)
 
         return tuple(all_artists)
         
@@ -267,13 +203,13 @@ class VisualizePendulum():
             all_artists.append(self.time_markers[i])
             
             # Data for pendulum line and bob
-            length_string = (self.length_pend - self.length_rect_long/2)
-            x: float = self.length_pend * np.sin(data.values_angle[current_frame])
-            y: float = -self.length_pend * np.cos(data.values_angle[current_frame])
+            length_string = (self.plot_initializer.length_pend - self.plot_initializer.length_rect_long/2)
+            x: float = self.plot_initializer.length_pend * np.sin(data.values_angle[current_frame])
+            y: float = -self.plot_initializer.length_pend * np.cos(data.values_angle[current_frame])
 
             # Pendulum line
-            x_line: float = x * length_string / self.length_pend
-            y_line: float = y * length_string / self.length_pend
+            x_line: float = x * length_string / self.plot_initializer.length_pend
+            y_line: float = y * length_string / self.plot_initializer.length_pend
             self.pendulum_lines[i].set_data([0, x_line], [0, y_line])
             all_artists.append(self.pendulum_lines[i])
             
@@ -283,25 +219,21 @@ class VisualizePendulum():
             self.pendulum_rects[i].set_transform(trans)
             all_artists.append(self.pendulum_rects[i])
         
-        # NEW: Update the reference pendulum animation
+        # Update the reference pendulum animation (only the pendulum part)
         if self.reference_pendulum_data and self.reference_pendulum_data.values_angle_ref is not None:
             ref_data = self.reference_pendulum_data
-            # Clamp frame for reference data (which might have a different effective step_width)
             ref_current_frame = min(frame, len(ref_data.values_time_ref) - 1) 
 
-            # Data for reference pendulum line and bob
-            length_string_ref = (self.length_pend - self.length_rect_long/2)
-            x_ref: float = self.length_pend * np.sin(ref_data.values_angle_ref[ref_current_frame])
-            y_ref: float = -self.length_pend * np.cos(ref_data.values_angle_ref[ref_current_frame]) 
+            length_string_ref = (self.plot_initializer.length_pend - self.plot_initializer.length_rect_long/2)
+            x_ref: float = self.plot_initializer.length_pend * np.sin(ref_data.values_angle_ref[ref_current_frame])
+            y_ref: float = -self.plot_initializer.length_pend * np.cos(ref_data.values_angle_ref[ref_current_frame]) 
 
-            # Reference Pendulum line
-            x_line_ref: float = x_ref * length_string_ref / self.length_pend
-            y_line_ref: float = y_ref * length_string_ref / self.length_pend
+            x_line_ref: float = x_ref * length_string_ref / self.plot_initializer.length_pend
+            y_line_ref: float = y_ref * length_string_ref / self.plot_initializer.length_pend
             if self.reference_pendulum_line:
                 self.reference_pendulum_line.set_data([0, x_line_ref], [0, y_line_ref])
                 all_artists.append(self.reference_pendulum_line)
             
-            # Rotate and move reference rectangle bob
             angle_ref: float = np.arctan2(y_ref, x_ref)
             trans_ref = Affine2D().rotate(angle_ref).translate(x_ref, y_ref) + self.ax_pend.transData
             if self.reference_pendulum_rect:
@@ -319,7 +251,6 @@ class VisualizePendulum():
         self._create_animation_figure()
         sec_to_millisec: float = 1000
 
-        # Animation frames will be based on the longest simulation run OR the reference run
         max_frames = 0
         if self.pendulum_data_runs:
             max_frames = max(len(data.values_time) for data in self.pendulum_data_runs.values())
@@ -347,12 +278,12 @@ class VisualizePendulum():
         plt.figure(figsize=(10, 6))
 
         for i, (name, data) in enumerate(self.pendulum_data_runs.items()):
-            color = self.colors[i % len(self.colors)]
-            plt.plot(data.values_time, np.rad2deg(data.values_angle), color=color, label=f'Integrator ({name})')
+            color = self.plot_initializer.colors[i % len(self.plot_initializer.colors)]
+            plt.plot(data.values_time, np.rad2deg(data.values_angle), color=color, label=f'Integrator ({name})', alpha=self.plot_initializer.alpha_value)
             
             if data.reference and data.values_time_ref is not None:
                 plt.plot(data.values_time_ref, np.rad2deg(data.values_angle_ref), 
-                         color=self.reference_color, linestyle='--', label=f'Reference (RK45)')
+                         color=self.plot_initializer.reference_color, linestyle='--', label=f'Reference (RK45)', alpha=self.plot_initializer.alpha_value)
         
         plt.title("Pendulum simulation: Angle over time")
         plt.xlabel("Time/ s")
