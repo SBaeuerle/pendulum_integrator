@@ -270,6 +270,9 @@ class VisualizePendulum():
             repeat=repeat
         )
         plt.suptitle("Pendulum Animation with Time-Trace Indicator")
+
+        manager = plt.get_current_fig_manager()
+        manager.full_screen_toggle() #Maximize figure to full screen mode   
         plt.show()
         return self.ani
 

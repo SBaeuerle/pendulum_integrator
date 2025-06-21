@@ -9,7 +9,7 @@ d =  0.2
 
 # Anfangsbedingungen
 t_end = 5
-h = 0.1
+h = 0.01
 
 
 # Anfangsbedingungen
