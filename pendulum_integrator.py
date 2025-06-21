@@ -16,7 +16,7 @@ dtheta_0 = 0
 # Zeitwerte und logging
 t_values = np.arange(0, t_max, h)
 
-# Speicherplatz alloquieren
+# Speicherplatz alloquiren
 u = np.zeros((2, len(t_values)))
 
 # Anfangswerte
@@ -28,7 +28,7 @@ for n in range(0, len(t_values)-1):
     u[1, n+1] = u[1, n] + h*(-2*D*omega_0*u[1, n] - omega_0**2*np.sin(u[0, n]))
 
 
-# Smaller step width
+# Kleinere Zeitschrittweiter
 h = 0.001
 
 # Zeitwerte und logging
