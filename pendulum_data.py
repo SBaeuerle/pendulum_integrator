@@ -65,7 +65,7 @@ class PendulumData:
         sol = solve_ivp(
             damped_ode,
             (t_min, t_max),
-            [theta_start, omega_start],
+            [theta_start, omega_start], 
             method="RK45",
             t_eval=t_eval,
             args=(self.omega_0_ref, self.D_ref)

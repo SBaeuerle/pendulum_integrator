@@ -43,8 +43,7 @@ class VisualizePendulum():
 
     # --- Constructor ---
     def __init__(self, simulation_results: Dict[str, Tuple[np.ndarray, np.ndarray]],
-                 reference: bool = False, omega_0_ref: float = np.sqrt(9.81),
-                 D_ref: float = 0.05) -> None:
+                 reference: bool = False, m: float = 0.2, d: float = 0.2, g: float = 9.81, L: float = 0.5) -> None:
         """
         Initializes the pendulum visualization by first processing the data for multiple runs.
 
@@ -54,9 +53,16 @@ class VisualizePendulum():
                 tuples (time_values_array, state_values_array) for each simulation run.
             reference (bool): Whether to compute and show a single reference solution 
                               (applied to the first simulation run in the dictionary).
-            omega_0_ref (float): Natural frequency for the reference solution.
-            D_ref (float): Damping coefficient for the reference solution.
+            m (float): mass of the pendulum
+            d (float): Damping coefficient for the reference solution.
+            g (float): inertial acceleration
+            L (float): length of pendulum
         """
+        # Compute the necessary parameters
+        omega_0_ref: float = np.sqrt(g/L)
+        D_ref: float = d/(2*m*omega_0_ref)
+
+
         self.pendulum_data_runs = {}
         self.plot_initializer = PendulumPlotInitializer() # Initialize the plotting utility
 
@@ -80,9 +86,7 @@ class VisualizePendulum():
                 self.reference_pendulum_data = current_pendulum_data
 
         all_step_widths = [data.step_width for data in self.pendulum_data_runs.values()]
-        if self.reference_pendulum_data:
-            all_step_widths.append(self.reference_pendulum_data.ref_step_width)
-        self.animation_step_width = min(all_step_widths) if all_step_widths else 0.01 
+        self.animation_step_width = min(all_step_widths)
 
     # --- Animation Setup --- 
     def _create_animation_figure(self) -> None:
@@ -255,7 +259,6 @@ class VisualizePendulum():
             max_frames = max(len(data.values_time) for data in self.pendulum_data_runs.values())
         if self.reference_pendulum_data and self.reference_pendulum_data.values_time_ref is not None:
             max_frames = max(max_frames, len(self.reference_pendulum_data.values_time_ref))
-
 
         self.ani = FuncAnimation(
             self.fig,
