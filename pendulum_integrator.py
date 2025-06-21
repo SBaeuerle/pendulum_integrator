@@ -8,7 +8,7 @@ omega_0 = np.sqrt(g/L)
 D = 0.05
 t_min = 0
 t_max = 10
-h = 0.01
+h = 2*D/omega_0
 
 theta_0 = np.deg2rad(45)
 dtheta_0 = 0
@@ -26,7 +26,6 @@ u[1, 0] = dtheta_0
 for n in range(0, len(t_values)-1):    
     u[0, n+1] = u[0, n] + h*u[1, n]
     u[1, n+1] = u[1, n] + h*(-2*D*omega_0*u[1, n] - omega_0**2*np.sin(u[0, n]))
-
 
 
 # Smaller step width

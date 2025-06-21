@@ -84,8 +84,7 @@ class VisualizePendulum():
             all_step_widths.append(self.reference_pendulum_data.ref_step_width)
         self.animation_step_width = min(all_step_widths) if all_step_widths else 0.01 
 
-
-    # --- Animation Setup ---
+    # --- Animation Setup --- 
     def _create_animation_figure(self) -> None:
         # Delegate figure and axes creation to the initializer
         self.fig, self.ax_time, self.ax_pend = self.plot_initializer.create_figure_and_axes()
