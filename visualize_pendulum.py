@@ -267,7 +267,7 @@ class VisualizePendulum():
             init_func=self._init_animation,
             blit=True,
             interval=self.animation_step_width * sec_to_millisec,
-            repeat=repeat
+            repeat=True
         )
         plt.suptitle("Pendulum Animation with Time-Trace Indicator")
         plt.show()

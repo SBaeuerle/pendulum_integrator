@@ -11,20 +11,25 @@ d =  0.2
 t_end = 5
 h = 0.1
 
-
 # Speicherplatz schonmal belegen
 t_values = np.arange(0, t_end, h)
 number_of_steps = len(t_values)-1
-u = np.zeros((2, len(t_values)))
+x = np.zeros_like(t_values)
+v = np.zeros_like(t_values)
 
-# Anfangsbedingungen
+# Anfangebdingungen
+x[0] = np.deg2rad(75)
+v[0] = 0
 
 # Euler explizit
+for j in range(0,number_of_steps):
+    x[j+1] = x[j] + h*v[j]
+    v[j+1] = v[j] + h*(-d/m*v[j]-g/L*np.sin(x[j]))
 
 
 show_reference = True
 results = {
-    'Euler_explicit': (t_values, u),
+    'Euler_explicit': (t_values, np.array([x,v])),
 }
 
 viz_pendel = VisualizePendulum(results, show_reference, m,d,g,L)
