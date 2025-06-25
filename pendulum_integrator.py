@@ -9,7 +9,7 @@ d =  0.2
 
 # Zeit
 t_end = 5
-h = 0.1
+h = 0.01
 
 # Speicherplatz schonmal belegen
 t_values = np.arange(0, t_end, h)
